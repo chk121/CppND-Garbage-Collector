@@ -106,17 +106,24 @@ Pointer<T,size>::Pointer(T *t){
         atexit(shutdown);
     first = false;
     // TODO: Implement Pointer constructor
-    // Refer to github.com/ealvarez968/GarbageCollector
-    PtrDetails<T> p (t, 0);
-    p.memPtr = t;
-    p.isArray = false;
+    typename std::list<PtrDetails<T>>::iterator p;
 
-    refContainer.push_back(p);
-
-    addr = t;
-    isArray = false;
-    arraySize = 0;
+    p = findPtrInfo(t);
+    if(p!=refContainer.end()){
+        p->refcount++;
+    }else{
+        PtrDetails<T> obj(t,size);
+        refContainer.push_front(obj);
+    }
+    addr = t; 
+    arraySize = size; 
+    if(size >0){
+        isArray = true;
+    }else{
+        isArray = false;
+    }
 }
+
 // Copy constructor.
 template< class T, int size>
 Pointer<T,size>::Pointer(const Pointer &obj){
@@ -130,6 +137,7 @@ Pointer<T,size>::Pointer(const Pointer &obj){
     addr = obj.addr;
     isArray = obj.isArray;
     arraySize = obj.arraySize;
+    
 }
 
 // Destructor for Pointer.
@@ -187,23 +195,23 @@ bool Pointer<T, size>::collect(){
 template <class T, int size>
 T *Pointer<T, size>::operator=(T *t){
     // TODO: Implement operator=
-	// Refer to github.com/ealvarez968/GarbageCollector
 	typename std::list<PtrDetails<T> >::iterator q;
-    // First, decrement the reference count
-    // for the memory currently being pointed to.
-    q = findPtrInfo(addr);
-    if(q->refcount--){
-    	q->refcount--;
-    }
-    
-	PtrDetails<T> p (t, 0);
-    p.memPtr = t;
-    p.isArray = false;
-    refContainer.push_back(p);
+	q = findPtrInfo(t);
+    // Increasing the reference count for the memory currently being pointed to
+    q->refcount++;
     addr = t;
-    isArray = false;
-    arraySize = 0;
-
+    
+    arraySize = refContainerSize();
+    
+    // Checking whether it is an array or not 
+    if (arraySize > 0)
+        isArray = true;
+    else
+        isArray = false;
+    
+    //  Deleting the Pointer t which we defined since 
+    // it will go out of scope as soon as the function returns 
+    delete t;
     return addr;
 }
 
